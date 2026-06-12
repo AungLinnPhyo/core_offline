@@ -1,13 +1,18 @@
+import 'dart:convert';
+
+import '../enums/action_type_enum.dart';
+import '../enums/outbox_status_enum.dart';
+
 class OfflineOutboxItem {
   final int id;
   final String url;
   final String method;
-  final String actionType; // // Should be enum
-  final String payload; // Should be Map<String, dyncamic>
+  final ActionTypeEnum actionType;
+  final String payload;
   final int retryCount;
-  final String? clientReferenceId; // Client ဘက်ကနေ ကြိုထုတ်ထားတဲ့ UUID (Related items များအတွက်)
+  final String? clientReferenceId;
   final int maxRetries;
-  final String status; // Should be enum
+  final OutboxStatusEnum status;
   final String? lastError;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -26,4 +31,36 @@ class OfflineOutboxItem {
     required this.createdAt,
     this.updatedAt,
   });
+
+  Map<String, dynamic> get payloadAsMap => jsonDecode(payload);
+
+  factory OfflineOutboxItem.create({
+    required int id,
+    required String url,
+    required String method,
+    required ActionTypeEnum actionType,
+    required Map<String, dynamic> payloadMap,
+    required int retryCount,
+    String? clientReferenceId,
+    required int maxRetries,
+    required OutboxStatusEnum status,
+    String? lastError,
+    required DateTime createdAt,
+    DateTime? updatedAt,
+  }) {
+    return OfflineOutboxItem(
+      id: id,
+      url: url,
+      method: method,
+      actionType: actionType,
+      payload: jsonEncode(payloadMap),
+      retryCount: retryCount,
+      clientReferenceId: clientReferenceId,
+      maxRetries: maxRetries,
+      status: status,
+      lastError: lastError,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
 }

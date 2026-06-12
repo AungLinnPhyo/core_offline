@@ -2,7 +2,7 @@ library;
 
 // 1. Sync Engine နှင့် ပတ်သက်သော Configuration များကို Export လုပ်ခြင်း
 export 'src/sync_config.dart';
-export 'src/sync_engine_enums.dart';
+export 'enums/sync_engine_enums.dart';
 
 // 2. Data Models နှင့် Interfaces (Abstract Classes) များကို Export လုပ်ခြင်း
 export 'src/offline_outbox_item.dart';

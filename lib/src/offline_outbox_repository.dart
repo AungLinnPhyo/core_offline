@@ -1,3 +1,4 @@
+import '../enums/outbox_status_enum.dart';
 import 'offline_outbox_item.dart';
 
 abstract class OfflineOutboxRepository {
@@ -9,11 +10,8 @@ abstract class OfflineOutboxRepository {
   Future<OfflineOutboxItem?> getNextSyncableItem();
 
   /// Updates status and retry counts of an outbox item.
-  Future<void> updateOutboxItem({required int id, required String status, required int retryCount, String? lastError});
+  Future<void> updateOutboxItem({required int id, required OutboxStatusEnum status, required int retryCount, String? lastError});
 
   /// Deletes an outbox item from the queue.
   Future<void> deleteOutboxItem(int id);
-
-  /// Pending ဖြစ်နေတဲ့ items တွေရဲ့ payload ထဲမှာ temporary ID ကို server ID နဲ့ အစားထိုးပေးဖို့
-  Future<void> patchPendingPayloads({required String clientReferenceId, required String serverId});
 }
