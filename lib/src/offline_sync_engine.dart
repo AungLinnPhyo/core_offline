@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer' as dev;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -128,22 +127,22 @@ class OfflineSyncEngine {
         // ပို့တော့မည့် Item ကို Local Database တွင် 'syncing' အခြေအနေသို့ ပြောင်းလဲသည်
         await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.syncing, retryCount: item.retryCount);
 
-        // String ဖြင့် သိမ်းထားသော ပို့မည့်ဒေတာ (Payload) ကို JSON Map အဖြစ် ပြန်လည်ပြောင်းလဲ
-        Map<String, dynamic> payload;
-        try {
-          payload = jsonDecode(item.payload) as Map<String, dynamic>;
-        } catch (e) {
-          // JSON format မှားခဲ့လျှင်
-          dev.log('❌ Error decoding payload for item #${item.id}: $e', name: 'OfflineSyncEngine');
-          await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.failed, retryCount: item.retryCount, lastError: 'Invalid JSON payload: $e');
-          continue;
-        }
+        // // String ဖြင့် သိမ်းထားသော ပို့မည့်ဒေတာ (Payload) ကို JSON Map အဖြစ် ပြန်လည်ပြောင်းလဲ
+        // Map<String, dynamic> payload;
+        // try {
+        //   payload = jsonDecode(item.payload) as Map<String, dynamic>;
+        // } catch (e) {
+        //   // JSON format မှားခဲ့လျှင်
+        //   dev.log('❌ Error decoding payload for item #${item.id}: $e', name: 'OfflineSyncEngine');
+        //   await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.failed, retryCount: item.retryCount, lastError: 'Invalid JSON payload: $e');
+        //   continue;
+        // }
 
         try {
           dev.log('📤 Processing outbox item #${item.id} (Action: ${item.actionType})', name: 'OfflineSyncEngine');
 
           // 🛑 ဤနေရာသည် သက်ဆိုင်ရာ Processor ကိုသုံး၍ ဆာဗာသို့ အင်တာနက်မှတစ်ဆင့် အချက်အလက် အမှန်တကယ် ပို့ဆောင်သည့်နေရာဖြစ်သည်
-          final response = await processor.process(payload);
+          final response = await processor.process(item);
 
           // Relationship Handling:
           // Server ဆီက response ရလာပြီး item မှာ clientReferenceId ရှိနေရင်
@@ -166,17 +165,17 @@ class OfflineSyncEngine {
           // 🛑 ဒေတာထပ်နေသည့် Conflict Error ကို ဖမ်းမိသည့်အခါ
           dev.log('⚠️ Conflict detected for item #${item.id}. Invoking conflict handler...', name: 'OfflineSyncEngine');
           await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.conflict, retryCount: item.retryCount, lastError: error.toString());
-          await processor.onConflict(error, payload);
+          await processor.onConflict(error, item);
           dev.log('⚠️ Conflict handled. Queue unblocked.', name: 'OfflineSyncEngine');
         } on SyncNetworkException catch (error) {
           // 🌐 Network ပိုင်းဆိုင်ရာ Error တက်သည့်အခါ (Retry ပြန်လုပ်မည်)
-          await _handleRetryableError(item, processor, error, payload);
+          await _handleRetryableError(item, processor, error);
         } on SyncServerException catch (error) {
           // 🖥️ Server ပိုင်းဆိုင်ရာ Error (5xx) တက်သည့်အခါ (Retry ပြန်လုပ်မည်)
-          await _handleRetryableError(item, processor, error, payload);
+          await _handleRetryableError(item, processor, error);
         } catch (error) {
           // ❌ အခြား မမျှော်လင့်ထားသော Error များ
-          await _handleFatalError(item, processor, error, payload);
+          await _handleFatalError(item, processor, error);
         }
       }
 
@@ -199,23 +198,23 @@ class OfflineSyncEngine {
     // 1. အခြေအနေအား 'syncing' သို့ ပြောင်းလဲပါ
     await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.syncing, retryCount: item.retryCount);
 
-    Map<String, dynamic> payload;
-    try {
-      payload = item.payloadAsMap;
-    } catch (e) {
-      dev.log('❌ Error decoding JSON for item #${item.id}', name: 'OfflineSyncEngine');
-      await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.failed, retryCount: item.retryCount, lastError: 'Invalid JSON');
-      return;
-    }
+    // Map<String, dynamic> payload;
+    // try {
+    //   payload = item.payloadAsMap;
+    // } catch (e) {
+    //   dev.log('❌ Error decoding JSON for item #${item.id}', name: 'OfflineSyncEngine');
+    //   await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.failed, retryCount: item.retryCount, lastError: 'Invalid JSON');
+    //   return;
+    // }
 
     try {
       // 2. Runtime ID Resolution: Payload ထဲတွင် Client ID များပါပါက Server ID နှင့် အစားထိုးမည်
-      final resolvedPayload = await _resolvePayloadReferences(payload);
+      // final resolvedPayload = await _resolvePayloadReferences(item.payloadAsMap);
 
       dev.log('📤 Processing outbox item #${item.id} (Action: ${item.actionType})', name: 'OfflineSyncEngine');
 
       // 3. ဆာဗာသို့ ပို့ဆောင်ခြင်း
-      final response = await processor.process(resolvedPayload);
+      final response = await processor.process(item);
 
       // 4. အောင်မြင်လျှင် Mapping သိမ်းဆည်းခြင်း
       if (response != null && item.clientReferenceId != null) {
@@ -231,36 +230,14 @@ class OfflineSyncEngine {
       dev.log('✅ Successfully processed item #${item.id}', name: 'OfflineSyncEngine');
     } on SyncConflictException catch (error) {
       await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.conflict, retryCount: item.retryCount, lastError: error.toString());
-      await processor.onConflict(error, payload);
+      await processor.onConflict(error, item);
     } on SyncNetworkException catch (error) {
-      await _handleRetryableError(item, processor, error, payload);
+      await _handleRetryableError(item, processor, error);
     } on SyncServerException catch (error) {
-      await _handleRetryableError(item, processor, error, payload);
+      await _handleRetryableError(item, processor, error);
     } catch (error) {
-      await _handleFatalError(item, processor, error, payload);
+      await _handleFatalError(item, processor, error);
     }
-  }
-
-  /// Payload ထဲရှိ တန်ဖိုးများကို စစ်ဆေးပြီး _referenceRepository တွင် mapping ရှိပါက Server ID ဖြင့် အစားထိုးပေးသည်
-  Future<Map<String, dynamic>> _resolvePayloadReferences(Map<String, dynamic> payload) async {
-    final Map<String, dynamic> newPayload = Map.from(payload);
-
-    for (final entry in newPayload.entries) {
-      final value = entry.value;
-      if (value is String) {
-        // _referenceRepository တွင် ရှာဖွေသည်
-        final serverId = await _referenceRepository.getServerId(value);
-        if (serverId != null) {
-          newPayload[entry.key] = serverId;
-          dev.log('🎯 Resolved Reference: ${entry.key} ($value -> $serverId)', name: 'OfflineSyncEngine');
-        }
-      } else if (value is Map<String, dynamic>) {
-        // Nested Map ဖြစ်ပါက Recursive ခေါ်ယူသည်
-        newPayload[entry.key] = await _resolvePayloadReferences(value);
-      }
-    }
-
-    return newPayload;
   }
 
   /// Background Task များမှ လှမ်းခေါ်ရန်အတွက် One-shot Sync Method
@@ -313,14 +290,14 @@ class OfflineSyncEngine {
     }
   }
 
-  Future<void> _handleRetryableError(OfflineOutboxItem item, OutboxActionProcessor processor, Object error, Map<String, dynamic> payload) async {
+  Future<void> _handleRetryableError(OfflineOutboxItem item, OutboxActionProcessor processor, Object error) async {
     final newRetryCount = item.retryCount + 1;
     final maxRetries = item.maxRetries;
 
     if (newRetryCount >= maxRetries) {
       dev.log('🚨 Item #${item.id} exceeded max retries. Marking as failed.', name: 'OfflineSyncEngine');
       await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.failed, retryCount: newRetryCount, lastError: error.toString());
-      await processor.onFailure(error, payload, newRetryCount);
+      await processor.onFailure(error, item, newRetryCount);
     } else {
       final Duration delay = newRetryCount.getExponentialDelay(maxRetries);
       dev.log('⏳ Error တက်သဖြင့် Item #${item.id} ကို $delay အကြာမှ ပြန်လည်စမ်းသပ်ပါမည်။', name: 'OfflineSyncEngine');
@@ -330,11 +307,11 @@ class OfflineSyncEngine {
     _updateStatus(SyncEngineEnums.error);
   }
 
-  Future<void> _handleFatalError(OfflineOutboxItem item, OutboxActionProcessor processor, Object error, Map<String, dynamic> payload) async {
+  Future<void> _handleFatalError(OfflineOutboxItem item, OutboxActionProcessor processor, Object error) async {
     // ချက်ချင်း Failed သတ်မှတ်မည့် အပိုင်း
     final newRetryCount = item.retryCount + 1;
     await _outboxRepository.updateOutboxItem(id: item.id, status: OutboxStatusEnum.failed, retryCount: newRetryCount, lastError: error.toString());
-    await processor.onFailure(error, payload, newRetryCount);
+    await processor.onFailure(error, item, newRetryCount);
     _updateStatus(SyncEngineEnums.error);
   }
 

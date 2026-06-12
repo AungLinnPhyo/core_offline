@@ -1,39 +1,24 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# 📦 Offline Sync Core Template
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+A lightweight, high-performance, and type-safe **Offline-First Outbox Engine** built with Clean Architecture principles for Flutter/Dart. This core template is designed specifically for enterprise-grade big projects using **Custom Backend REST APIs**, completely avoiding tight coupling with BaaS platforms like Firebase or Supabase.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+---
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## 🏗️ Architecture & Component Design
 
-## Features
+This template strictly follows the **Separation of Concerns (SoC)**. The Core package defines pure business rules and definitions, leaving the platform-specific database and background worker implementations to the Project level.
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
-```
-
-## Additional information
-
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+┌────────────────────────────────────────────────────────┐
+│                   📱 PROJECT LEVEL                     │
+│  ┌───────────────────────┐   ┌──────────────────────┐  │
+│  │ Floor DB Repositories │   │  Action Processors   │  │
+│  └───────────┬───────────┘   └───────────┬──────────┘  │
+└──────────────┼───────────────────────────┼─────────────┘
+▼                           ▼
+┌──────────────┼───────────────────────────┼─────────────┐
+│              │    📦 CORE TEMPLATE LAYER │             │
+│              ▼                           ▼             │
+│   ┌──────────────────────┐   ┌──────────────────────┐  │
+│   │Outbox/Ref Interfaces │   │  OfflineSyncEngine   │  │
+│   └──────────────────────┘   └──────────────────────┘  │
+└────────────────────────────────────────────────────────┘
