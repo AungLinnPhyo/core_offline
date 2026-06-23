@@ -7,7 +7,7 @@ class OfflineOutboxItem {
   final int id;
   final String url;
   final String method;
-  final ActionTypeEnum actionType;
+  final String actionType;
   final String payload;
   final int retryCount;
   final String? clientReferenceId;
@@ -38,7 +38,7 @@ class OfflineOutboxItem {
     required int id,
     required String url,
     required String method,
-    required ActionTypeEnum actionType,
+    required String actionType,
     required Map<String, dynamic> payloadMap,
     required int retryCount,
     String? clientReferenceId,
